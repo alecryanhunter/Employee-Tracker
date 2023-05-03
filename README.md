@@ -1,1 +1,9 @@
-# Employee-Tracker
+# Employee Tracker
+
+## Description
+
+## Usage
+
+## Installation
+
+## Credits
