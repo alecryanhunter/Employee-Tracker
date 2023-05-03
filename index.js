@@ -101,6 +101,7 @@ async function init() {
 
     switch(menu.select) {
 
+        // done
         case "View All Departments":
             db.promise().query(
                 `SELECT
@@ -114,6 +115,7 @@ async function init() {
             });
             break;
 
+        // done
         case "View All Roles":
             db.promise().query(
                 `SELECT
@@ -131,6 +133,7 @@ async function init() {
             });
             break;
 
+        // done
         case "View All Employees":
             console.log("WIP...showing all employees");
             db.promise().query(
@@ -155,21 +158,79 @@ async function init() {
             });
             break;
 
+        // done
         case "Add A Department":
-            console.log("WIP...adding a department");
-            init();
+            const newDept = await inquirer.prompt([
+                {
+                    name: "department",
+                    type: "input",
+                    message: "Please enter the name of the new department."
+                }
+            ]);
+            db.promise().query(
+                `INSERT INTO departments(name)
+                    VALUES
+                    (?)`,
+            [newDept.department]).then(()=>{
+                console.log("Added",newDept.department);
+                init();
+            });
             break;
 
+        // done
         case "Add A Role":
-            console.log("WIP...adding a role");
-            init();
+            db.promise().query(
+                `SELECT name FROM departments`
+            ).then(async function([rows,fields]) {
+                console.log(rows);
+                const roleDept = await inquirer.prompt([
+                    {
+                        name: "name",
+                        type: "list",
+                        choices: rows,
+                        loop: false,
+                        pageSize: rows.length,
+                        message: "Please select the department to add the role to."
+                    }
+                ]);
+                console.log(roleDept.name)
+                db.promise().query(
+                    `SELECT id FROM departments WHERE name = ?`,
+                [roleDept.name]).then(async function([rows,fields]){
+                    const deptId = Object.values(rows[0])[0]
+                    const roleTitle = await inquirer.prompt([
+                        {
+                            name: "name",
+                            type: "input",
+                            message: "Please enter the role's title."
+                        }
+                    ]);
+                    const salary = await inquirer.prompt([
+                        {
+                            name: "salary",
+                            type: "input",
+                            message: "Please enter the role's salary."
+                        }
+                    ]);
+                    db.promise().query(
+                        `INSERT INTO roles(title,salary,department_id)
+                            VALUES
+                            (?,?,?)`,
+                    [roleTitle.name,salary.salary,deptId]).then(()=>{
+                        console.log("Added",roleTitle.name);
+                        init();
+                    });
+                });
+            });
             break;
 
+        // not done
         case "Add An Employee":
             console.log("WIP...adding an employee");
             init();
             break;
 
+        // not done
         case "Update An Employee's Role":
             console.log("WIP...updating an employee's role");
             init();
