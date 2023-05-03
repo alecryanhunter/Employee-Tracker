@@ -56,3 +56,100 @@
 // Update Employee Role
     // Select Employee
     // New Role
+
+// Update Employee Managers
+// View Employees by Manager
+// View Employees by Department
+// Delete departments, roles, and employees
+// View total budget of a department
+
+const inquirer = require("inquirer");
+const mysql = require("mysql2");
+const cTable = require("console.table");
+
+const db = mysql.createConnection(
+    {
+        host:"localhost",
+        user:"root",
+        password:"password",
+        database:"employee_db"
+    },
+    console.log("Connected to the employee database")
+);
+
+async function init() {
+
+    const menu = await inquirer.prompt([
+        {
+            name: "select",
+            type: "list",
+            choices: [
+                "View All Departments",
+                "View All Roles",
+                "View All Employees",
+                "Add A Department",
+                "Add A Role",
+                "Add An Employee",
+                "Update An Employee's Role",
+                "Exit"
+            ],
+            message: "Please select an operation."
+        }
+    ])
+
+    switch(menu.select) {
+
+        case "View All Departments":
+            console.log("WIP...showing all deparments");
+            const departments = db.query(
+                "SELECT name AS Department, id as ID FROM departments",
+                function(err,data){
+                    console.log(`/n`)
+                    console.table(data);
+                });
+            init();
+            break;
+
+        case "View All Roles":
+            console.log("WIP...showing all roles");
+            init();
+            break;
+
+        case "View All Employees":
+            console.log("WIP...showing all employees");
+            init();
+            break;
+
+        case "Add A Department":
+            console.log("WIP...adding a department");
+            init();
+            break;
+
+        case "Add A Role":
+            console.log("WIP...adding a role");
+            init();
+            break;
+
+        case "Add An Employee":
+            console.log("WIP...adding an employee");
+            init();
+            break;
+
+        case "Update An Employee's Role":
+            console.log("WIP...updating an employee's role");
+            init();
+            break;
+
+        case "Exit":
+            throw "Thanks for using!"
+            break;
+
+        default: 
+            console.log("Something has gone wrong...");
+            break;
+    }
+
+    return;
+}
+
+init();
