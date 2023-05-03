@@ -83,6 +83,8 @@ async function init() {
         {
             name: "select",
             type: "list",
+            loop: "false",
+            pageSize: "8",
             choices: [
                 "View All Departments",
                 "View All Roles",
@@ -100,24 +102,57 @@ async function init() {
     switch(menu.select) {
 
         case "View All Departments":
-            console.log("WIP...showing all deparments");
-            const departments = db.query(
-                "SELECT name AS Department, id as ID FROM departments",
-                function(err,data){
-                    console.log(`/n`)
-                    console.table(data);
-                });
-            init();
+            db.promise().query(
+                `SELECT
+                    name AS Department,
+                    id as ID
+                FROM departments`,
+            ).then( ([rows,fields]) =>{
+                console.table(rows);
+            }).then(()=>{
+                init();
+            });
             break;
 
         case "View All Roles":
-            console.log("WIP...showing all roles");
-            init();
+            db.promise().query(
+                `SELECT
+                    roles.title AS JobTitle,
+                    roles.id AS ID,
+                    departments.name AS Department,
+                    roles.salary as Salary
+                FROM departments
+                JOIN roles
+                ON departments.id = roles.department_id`,
+            ).then( ([rows,fields])=>{
+                console.table(rows);
+            }).then(()=>{
+                init()
+            });
             break;
 
         case "View All Employees":
             console.log("WIP...showing all employees");
-            init();
+            db.promise().query(
+                `SELECT
+                    CONCAT(employees.first_name,' ',employees.last_name) AS EmployeeName,
+                    employees.id AS ID,
+                    roles.title AS JobTitle,
+                    departments.name AS Department,
+                    roles.salary AS Salary,
+                    CONCAT(managers.first_name,' ',managers.last_name) AS ManagerName
+                FROM employees
+                LEFT JOIN employees AS managers
+                ON employees.manager_id = managers.id
+                JOIN roles
+                ON employees.role_id = roles.id
+                JOIN departments
+                ON roles.department_id = departments.id`
+            ).then( ([rows,fields])=>{
+                console.table(rows);
+            }).then(()=>{
+                init()
+            });
             break;
 
         case "Add A Department":
@@ -141,7 +176,7 @@ async function init() {
             break;
 
         case "Exit":
-            throw "Thanks for using!"
+            console.log("Press Ctrl+C to end the program!");
             break;
 
         default: 
