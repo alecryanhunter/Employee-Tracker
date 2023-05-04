@@ -108,7 +108,7 @@ async function init() {
                     name AS Department,
                     id as ID
                 FROM departments`,
-            ).then( ([rows,fields]) =>{
+            ).then( ([array,fields]) =>{
                 console.table(rows);
             }).then(()=>{
                 init();
@@ -224,10 +224,72 @@ async function init() {
             });
             break;
 
-        // not done
+        // done
         case "Add An Employee":
-            console.log("WIP...adding an employee");
-            init();
+            db.promise().query(
+                `SELECT title AS name, id FROM roles`
+            ).then(async function([rows,fields]) {
+                const roles = rows
+                const newEmp = await inquirer.prompt([
+                    {
+                        name: "firstName",
+                        type: "input",
+                        message: "Please enter the new employee's first name."
+                    },
+                    {
+                        name: "lastName",
+                        type: "input",
+                        message: "Please enter the new employee's last name."
+                    },
+                    {
+                        name: "role",
+                        type: "list",
+                        choices: rows,
+                        loop: false,
+                        pageSize: rows.length,
+                        message: "Please select the new employee's role."
+                    }
+                ])
+
+                const roleId = idFinder(roles,newEmp.role);
+
+                db.promise().query(
+                    `SELECT CONCAT(first_name," ",last_name) AS name, id FROM employees`
+                ).then(async function ([rows,fields]) {
+                    // This adds an option to the beginning of the array for the
+                    // employee to have no manager, setting the manager_id to null
+                    const noManager = {
+                        name: 'No Manager',
+                        id: null
+                    }
+                    rows.unshift(noManager)
+                    console.log(rows);
+                    const manager = await inquirer.prompt([
+                        {
+                            name: "select",
+                            type: "list",
+                            choices: rows,
+                            loop: false,
+                            pageSize: rows.length,
+                            message: "Please select the new employee's manager."
+                        }
+                    ])
+
+                    const managerId = idFinder(rows,manager.select);
+
+                    console.log(newEmp.firstName)
+                    console.log(newEmp.lastName)
+                    console.log(roleId)
+                    console.log(managerId)
+                    db.promise().query(
+                        `INSERT INTO employees(first_name, last_name, role_id, manager_id)
+                        VALUES (?,?,?,?)`,
+                    [newEmp.firstName,newEmp.lastName,roleId,managerId]).then(()=>{
+                        console.log(`Added the ${newEmp.role}, ${newEmp.firstName} ${newEmp.lastName}, to the database.`)
+                        init();
+                    })
+                })
+            })
             break;
 
         // done
@@ -246,19 +308,13 @@ async function init() {
                         message: "Please select an employee to update."
                     }
                 ])
+
                 // This lets us find the ID for the correlating employee
-                let empIndex
-                for (i=0;i<employees.length;i++) {
-                    if (employees[i].name === empSelect.select){
-                        empIndex = i
-                        break;
-                    }
-                }
-                const empId = employees[empIndex].id
+                const empId = idFinder(employees,empSelect.select)
+                
                 db.promise().query(
                     `SELECT title AS name, id FROM roles`,
                 ).then(async function([rows,fields]) {
-                    console.log(rows);
                     const roles = rows;
                     const roleSelect = await inquirer.prompt([
                         {
@@ -270,18 +326,9 @@ async function init() {
                             message: "Please select the new role for the employee."
                         }
                     ])
-                    // This finds the ID of the corresponding role
-                    let roleIndex
-                    for (i=0;i<rows.length;i++) {
-                        if (rows[i].name === roleSelect.select){
-                            roleIndex = i
-                            break;
-                        }
-                    }
-                    const roleId = roles[roleIndex].id
 
-                    console.log(roleId)
-                    console.log(empId)
+                    // This finds the ID of the corresponding role
+                    const roleId = idFinder(roles,roleSelect.select)
 
                     db.promise().query(
                         `UPDATE employees
@@ -308,3 +355,20 @@ async function init() {
 }
 
 init();
+
+// This is a helper function I constructed that interfaces with SQL queries and
+// Inquirer to find an ID based on an Inquirer selection.
+// 'array' is the rows output of a query, with the 1st column being called 'name'
+// and the 2nd column being called id
+// 'match' is just whatever item you selected from that array you'd like to find
+function idFinder(array, match) {
+    let index
+        for (i=0;i<array.length;i++) {
+            if (array[i].name === match){
+                index = i
+                break;
+            }
+        }
+    const id = array[index].id;
+    return id;
+}
