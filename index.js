@@ -14,30 +14,31 @@ const db = mysql.createConnection(
 
 // This function handles the options selection
 async function init() {
+    const menuOpts = [
+        "View All Departments",
+        "View All Roles",
+        "View All Employees",
+        "View Employees by Manager",
+        "View Employees by Department",
+        "View A Department Budget",
+        "Add A Department",
+        "Add A Role",
+        "Add An Employee",
+        "Update An Employee's Role",
+        // TODO: Update Employee's Managers
+        // TODO: Delete A Department
+        // TODO: Delete A Role
+        // TODO: Delete An Employee
+        "Exit"
+    ]
 
     const menu = await inquirer.prompt([
         {
             name: "select",
             type: "list",
             loop: "false",
-            pageSize: "8",
-            choices: [
-                "View All Departments",
-                "View All Roles",
-                "View All Employees",
-                // TODO: View Employees by Manager
-                // TODO: View Employees by Department
-                // TODO: View Total Department Budgets
-                "Add A Department",
-                "Add A Role",
-                "Add An Employee",
-                "Update An Employee's Role",
-                // TODO: Update Employee Managers
-                // TODO: Delete A Department
-                // TODO: Delete A Role
-                // TODO: Delete An Employee
-                "Exit"
-            ],
+            pageSize: menuOpts.length,
+            choices: menuOpts,
             message: "Please select an operation."
         }
     ])
@@ -54,6 +55,18 @@ async function init() {
 
         case "View All Employees":
             viewEmployees();
+            break;
+
+        case "View Employees by Manager":
+            viewEmployeesbyManager();
+            break;
+
+        case "View Employees by Department":
+            viewEmployeesbyDepartment();
+            break;
+
+        case "View A Department Budget":
+            viewADepartmentBudget();
             break;
 
         case "Add A Department":
@@ -142,8 +155,142 @@ function viewEmployees() {
     ).then( ([rows])=>{
         console.table(rows);
     }).then(()=>{
-        init()
+        init();
     });
+};
+
+// Displays all the subordinates for a given manager
+function viewEmployeesbyManager() {
+    db.promise().query(
+        `SELECT
+            CONCAT(first_name," ",last_name) AS name, id
+        FROM employees`
+    ).then(async ([rows])=>{
+        const manager = await inquirer.prompt([
+            {
+                name: "select",
+                type: "list",
+                choices: rows,
+                loop: false,
+                pageSize: rows.length,
+                message: "Please select an employee to view their subordinates."
+            }
+        ]);
+
+        // Finds the user-provided manager's id
+        const managerId = idFinder(rows,manager.select);
+
+        // Joins tables to output employee names, ids, and titles
+        db.promise().query(
+            `SELECT
+                CONCAT(employees.first_name," ",employees.last_name) as Name,
+                employees.id AS ID,
+                roles.title AS JobTitle
+            FROM employees
+            JOIN employees as managers
+            ON employees.manager_id = managers.id
+            JOIN roles
+            ON employees.role_id = roles.id
+            WHERE employees.manager_id = ?`,
+        [managerId]).then(([rows])=>{
+            // Checks if output is empty, giving a message if it is
+            if(rows[0]){
+                console.table(rows);
+            } else {
+                console.log(`\n${manager.select} has no subordinates!\n`)
+            }
+        }).then(()=>{
+            init();
+        });
+    })
+}
+
+// Displays all the employees in a given department
+function viewEmployeesbyDepartment() {
+    db.promise().query(
+        `SELECT name, id FROM departments`
+    ).then(async ([rows])=>{
+        const dept = await inquirer.prompt([
+            {
+                name: "select",
+                type: "list",
+                choices: rows,
+                loop: false,
+                pageSize: rows.length,
+                message: "Please select an department to view it's employees."
+            }
+        ]);
+
+        // Finds the user-provided department's id
+        const deptId = idFinder(rows,dept.select);
+
+        // Joins tables to output employee names, ids, and titles
+        db.promise().query(
+            `SELECT
+                CONCAT(employees.first_name," ",employees.last_name) as Name,
+                employees.id AS ID,
+                roles.title AS JobTitle
+            FROM employees
+            JOIN roles
+            ON employees.role_id = roles.id
+            JOIN departments
+            ON roles.department_id = departments.id
+            WHERE departments.id = ?`,
+        [deptId]).then(([rows])=>{
+            // Checks if output is empty, giving a message if it is
+            if(rows[0]){
+                console.table(rows);
+            } else {
+                console.log(`\nError Message\n`)
+            }
+        }).then(()=>{
+            init();
+        });
+    })
+}
+
+// Shows budgets of selected department
+function viewADepartmentBudget() {
+    // Retrieves departments for selection
+    db.promise().query(
+        `SELECT name, id FROM departments`,
+    ).then(async ([rows])=>{
+        const department = await inquirer.prompt ([
+            {
+                name: "select",
+                type: "list",
+                choices: rows,
+                loop: false,
+                pageSize: rows.length,
+                message: "Please select a department to view their budget."
+            }
+        ])
+
+        // Finds the department ID
+        const deptId = idFinder(rows,department.select);
+
+        // This query could easily be modified to show all budgets, by removing the WHERE
+        db.promise().query(
+            `SELECT
+                departments.name AS name,
+                SUM(salary) AS budget
+            FROM employees
+            JOIN roles
+            ON employees.role_id = roles.id
+            RIGHT JOIN departments
+            ON roles.department_id = departments.id
+            WHERE departments.id = ?`,
+        [deptId]).then(([rows])=>{
+            // Checks if the budget is null, meaning there are no employees
+            if(rows[0].budget===null){
+                console.log(`\nNo employees in the ${rows[0].name} department!\n`)
+            } else{
+                console.log(`\nThe budget of the ${rows[0].name} Department is ${rows[0].budget} dollars.\n`);
+            }
+        }).then(()=>{
+            init();
+        });
+    })
 };
 
 // ADD FUNCTIONS
@@ -209,7 +356,7 @@ function addRole() {
                 VALUES
                 (?,?,?)`,
         [roleInfo.name,roleInfo.salary,deptId]).then(()=>{
-            console.log("Added",roleTitle.name);
+            console.log("Added",roleInfo.name);
             init();
         });
     });
