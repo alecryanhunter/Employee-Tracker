@@ -230,10 +230,69 @@ async function init() {
             init();
             break;
 
-        // not done
+        // done
         case "Update An Employee's Role":
-            console.log("WIP...updating an employee's role");
-            init();
+            db.promise().query(
+                `SELECT CONCAT(first_name," ",last_name) AS name, id FROM employees`
+            ).then(async function([rows,fields]) {
+                const employees = rows
+                const empSelect = await inquirer.prompt([
+                    {
+                        name: "select",
+                        type: "list",
+                        choices: rows,
+                        loop: false,
+                        pageSize: rows.length,
+                        message: "Please select an employee to update."
+                    }
+                ])
+                // This lets us find the ID for the correlating employee
+                let empIndex
+                for (i=0;i<employees.length;i++) {
+                    if (employees[i].name === empSelect.select){
+                        empIndex = i
+                        break;
+                    }
+                }
+                const empId = employees[empIndex].id
+                db.promise().query(
+                    `SELECT title AS name, id FROM roles`,
+                ).then(async function([rows,fields]) {
+                    console.log(rows);
+                    const roles = rows;
+                    const roleSelect = await inquirer.prompt([
+                        {
+                            name: "select",
+                            type: "list",
+                            choices: rows,
+                            loop: false,
+                            pageSize: rows.length,
+                            message: "Please select the new role for the employee."
+                        }
+                    ])
+                    // This finds the ID of the corresponding role
+                    let roleIndex
+                    for (i=0;i<rows.length;i++) {
+                        if (rows[i].name === roleSelect.select){
+                            roleIndex = i
+                            break;
+                        }
+                    }
+                    const roleId = roles[roleIndex].id
+
+                    console.log(roleId)
+                    console.log(empId)
+
+                    db.promise().query(
+                        `UPDATE employees
+                        SET role_id = ?
+                        WHERE id = ?`,
+                    [roleId,empId]).then(()=>{
+                        console.log(`${empSelect.select}'s role is now: ${roleSelect.select}.`);
+                        init();
+                    })
+                })
+            })
             break;
 
         case "Exit":
