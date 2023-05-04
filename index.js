@@ -29,6 +29,9 @@ async function init() {
         // TODO: Delete A Department
         // TODO: Delete A Role
         // TODO: Delete An Employee
+        "Delete A Department",
+        "Delete A Role",
+        "Delete An Employee",
         "Exit"
     ]
 
@@ -83,6 +86,18 @@ async function init() {
 
         case "Update An Employee's Role":
             updateEmployeeRole();
+            break;
+
+        case "Delete A Department":
+            deleteDepartment();
+            break;
+
+        case "Delete A Role":
+            deleteRole();
+            break;
+
+        case "Delete An Employee":
+            deleteEmployee();
             break;
 
         case "Exit":
@@ -485,6 +500,96 @@ function updateEmployeeRole() {
             })
         })
     })
+}
+
+// DELETE FUNCTIONS
+// ==============================
+
+function deleteDepartment(){
+    // Retrieves departments for selection
+    db.promise().query(
+        `SELECT name, id FROM departments`,
+    ).then(async ([rows])=>{
+        const department = await inquirer.prompt ([
+            {
+                name: "select",
+                type: "list",
+                choices: rows,
+                loop: false,
+                pageSize: rows.length,
+                message: "Please select a department to delete."
+            }
+        ])
+
+        // Finds the department ID
+        const deptId = idFinder(rows,department.select);
+
+        db.promise().query(
+            `DELETE FROM departments
+            WHERE id = ?`,
+        [deptId]).then(()=>{
+            console.log(`\nDeleted the ${department.select} Department.\n`);
+            init();
+        })
+    });
+}
+
+function deleteRole(){
+    // Retrieves roles for selection
+    db.promise().query(
+        `SELECT title AS name, id FROM roles`,
+    ).then(async ([rows])=>{
+        const role = await inquirer.prompt ([
+            {
+                name: "select",
+                type: "list",
+                choices: rows,
+                loop: false,
+                pageSize: rows.length,
+                message: "Please select a role to delete."
+            }
+        ])
+
+        // Finds the role ID
+        const roleId = idFinder(rows,role.select);
+
+        db.promise().query(
+            `DELETE FROM roles
+            WHERE id = ?`,
+        [roleId]).then(()=>{
+            console.log(`\nDeleted the ${role.select} Role.\n`);
+            init();
+        })
+    });
+}
+
+function deleteEmployee(){
+    // Retrieves employees for selection
+    db.promise().query(
+        `SELECT CONCAT(first_name," ",last_name) AS name, id FROM employees`,
+    ).then(async ([rows])=>{
+        const employee = await inquirer.prompt ([
+            {
+                name: "select",
+                type: "list",
+                choices: rows,
+                loop: false,
+                pageSize: rows.length,
+                message: "Please select a employee's records to delete."
+            }
+        ])
+
+        // Finds the employee ID
+        const employeeId = idFinder(rows,employee.select);
+
+        db.promise().query(
+            `DELETE FROM employees
+            WHERE id = ?`,
+        [employeeId]).then(()=>{
+            console.log(`\nDeleted ${employee.select}'s records.\n`);
+            init();
+        })
+    });
 }
 
 // HELPER FUNCTIONS
