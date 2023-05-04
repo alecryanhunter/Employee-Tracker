@@ -16,7 +16,7 @@ This program allows you to view the database in multiple different ways, as well
 This program was at first a very large struggle to even get started on, since I struggled with this section. However, after I got the initial templates down, it started to click. The different routes are not too dissimilar, allowing me to re-use and modify different parts of my code. This made it easy to add additional selection options.
 
 ## Usage
-A video demonstrating this program can be found [here]().
+A video demonstrating this program can be found [here](https://drive.google.com/file/d/1wPPYPLfXRcTQiM7Qc6WeYRBMEmnw_exP/view).
 
 After following the [Installation](#installation) instructions below, run the command `npm start` in the main directory. Then just select whichever options you'd like to use.
 
