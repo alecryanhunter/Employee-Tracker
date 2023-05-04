@@ -25,10 +25,7 @@ async function init() {
         "Add A Role",
         "Add An Employee",
         "Update An Employee's Role",
-        // TODO: Update Employee's Managers
-        // TODO: Delete A Department
-        // TODO: Delete A Role
-        // TODO: Delete An Employee
+        "Update An Employee's Manager",
         "Delete A Department",
         "Delete A Role",
         "Delete An Employee",
@@ -86,6 +83,10 @@ async function init() {
 
         case "Update An Employee's Role":
             updateEmployeeRole();
+            break;
+
+        case "Update An Employee's Manager":
+            updateEmployeeManager();
             break;
 
         case "Delete A Department":
@@ -256,7 +257,7 @@ function viewEmployeesbyDepartment() {
             if(rows[0]){
                 console.table(rows);
             } else {
-                console.log(`\nError Message\n`)
+                console.log(`\nThe ${dept.select} Department has no employees!}\n`)
             }
         }).then(()=>{
             init();
@@ -502,6 +503,49 @@ function updateEmployeeRole() {
     })
 }
 
+// Allows a user to update the manager of an employee
+function updateEmployeeManager() {
+    // Retrieves list of employees for user selection
+    db.promise().query(
+        `SELECT CONCAT(first_name," ",last_name) AS name, id FROM employees`
+    ).then(async function([rows]) {
+        const employees = rows
+        const select = await inquirer.prompt([
+            {
+                name: "employee",
+                type: "list",
+                choices: rows,
+                loop: false,
+                pageSize: rows.length,
+                message: "Please select an employee to update."
+            },
+            {
+                name: "manager",
+                type: "list",
+                choices: rows,
+                loop: false,
+                pageSize: rows.length,
+                message: "Please select a manager for this employee"
+            }
+        ])
+
+        // This lets us find the ID for the correlating employee
+        const empId = idFinder(employees,select.employee)
+        const managerId = idFinder(employees,select.manager)
+
+        // Changes user-selected employee's role to the new role
+        db.promise().query(
+            `UPDATE employees
+            SET manager_id = ?
+            WHERE id = ?`,
+        [managerId,empId]).then(()=>{
+            console.log(`${select.employee}'s manager is now: ${select.manager}.`);
+            init();
+        })
+    })
+};
+
+
 // DELETE FUNCTIONS
 // ==============================
 
@@ -563,6 +607,7 @@ function deleteRole(){
     });
 }
 
+// Deletes a user-selected employee
 function deleteEmployee(){
     // Retrieves employees for selection
     db.promise().query(
